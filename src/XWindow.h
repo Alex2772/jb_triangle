@@ -4,6 +4,7 @@
 #include <X11/X.h>
 #include <string>
 #include <GL/glx.h>
+#include "Vec.h"
 
 class XWindow {
 private:
@@ -15,6 +16,8 @@ private:
 
 protected:
     virtual void onCloseButtonClicked() {};
+    virtual void onMousePressed(unsigned button, int x, int y) {}
+    virtual void onRedraw() {};
 
 public:
     explicit XWindow(const std::string& title);

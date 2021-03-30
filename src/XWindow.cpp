@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 #include "XWindow.h"
+#include "MyGLEW.h"
 
 GLXContext XWindow::ourContext = nullptr;
 Display* XWindow::ourDisplay = nullptr;
@@ -14,31 +15,10 @@ int XWindow::ourScreenId = 0;
 struct {
     Atom wmProtocols;
     Atom wmDeleteWindow;
-    Atom wmHints;
-    Atom wmState;
-    Atom netWmState;
-    Atom netWmStateMaximizedVert;
-    Atom netWmStateMaximizedHorz;
-    Atom clipboard;
-    Atom utf8String;
-    Atom auiClipboard;
-    Atom incr;
-    Atom targets;
-
 
     void init() {
         wmProtocols = XInternAtom(XWindow::getDisplay(), "WM_PROTOCOLS", False);
         wmDeleteWindow = XInternAtom(XWindow::getDisplay(), "WM_DELETE_WINDOW", False);
-        wmHints = XInternAtom(XWindow::getDisplay(), "_MOTIF_WM_HINTS", true);
-        wmState = XInternAtom(XWindow::getDisplay(), "WM_STATE", true);
-        netWmState = XInternAtom(XWindow::getDisplay(), "_NET_WM_STATE", false);
-        netWmStateMaximizedVert = XInternAtom(XWindow::getDisplay(), "_NET_WM_STATE_MAXIMIZED_VERT", false);
-        netWmStateMaximizedHorz = XInternAtom(XWindow::getDisplay(), "_NET_WM_STATE_MAXIMIZED_HORZ", false);
-        clipboard = XInternAtom(XWindow::getDisplay(), "CLIPBOARD", False);
-        utf8String = XInternAtom(XWindow::getDisplay(), "UTF8_STRING", False);
-        auiClipboard = XInternAtom(XWindow::getDisplay(), "AUI_CLIPBOARD", False);
-        incr = XInternAtom(XWindow::getDisplay(), "INCR", False);
-        targets = XInternAtom(XWindow::getDisplay(), "TARGETS", False);
     }
 
 } gAtoms;
@@ -66,9 +46,7 @@ XWindow::XWindow(const std::string& title) {
         }
 
         ~DisplayInstance() {
-            //XFree(ourScreen);
             XCloseDisplay(ourDisplay);
-
         }
     };
     static DisplayInstance display;
@@ -173,6 +151,8 @@ XWindow::XWindow(const std::string& title) {
 
 
     glXMakeCurrent(ourDisplay, mNativeHandle, ourContext);
+
+    gl::init();
 /*
     if (!glewExperimental) {
         ALogger::info((const char*) glGetString(GL_VERSION));
@@ -205,7 +185,13 @@ void XWindow::loop() {
                 }
                 break;
             }
+            case ButtonPress: {
+                onMousePressed(ev.xbutton.button, ev.xbutton.x, ev.xbutton.y);
+                break;
+            }
 
         }
+        onRedraw();
+        glXSwapBuffers(ourDisplay, mNativeHandle);
     }
 }
