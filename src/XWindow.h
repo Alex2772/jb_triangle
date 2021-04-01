@@ -15,12 +15,15 @@ private:
     Window mNativeHandle;
 
 protected:
-    virtual void onCloseButtonClicked() {};
     virtual void onMousePressed(unsigned button, int x, int y) {}
-    virtual void onRedraw() {};
+    virtual void onMouseReleased(unsigned button, int x, int y) {}
+    virtual void onMouseMouse(int x, int y) {}
+    virtual void onWindowResize(int width, int height);
 
+    virtual void onRedraw() {};
 public:
     explicit XWindow(const std::string& title);
+
     ~XWindow();
 
     /**

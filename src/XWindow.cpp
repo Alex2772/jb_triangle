@@ -46,7 +46,6 @@ XWindow::XWindow(const std::string& title) {
         }
 
         ~DisplayInstance() {
-            XCloseDisplay(ourDisplay);
         }
     };
     static DisplayInstance display;
@@ -136,7 +135,11 @@ XWindow::XWindow(const std::string& title) {
                          | PointerMotionMask | StructureNotifyMask | PropertyChangeMask;
         ourContext = glXCreateContext(ourDisplay, vi, nullptr, true);
     }
-    mNativeHandle = XCreateWindow(ourDisplay, ourScreen->root, 0, 0, 800, 600, 0, vi->depth, InputOutput, vi->visual,
+
+    const unsigned width = 800;
+    const unsigned height = 600;
+
+    mNativeHandle = XCreateWindow(ourDisplay, ourScreen->root, 0, 0, width, height, 0, vi->depth, InputOutput, vi->visual,
                             CWColormap | CWEventMask | CWCursor, &swa);
 
 
@@ -153,6 +156,8 @@ XWindow::XWindow(const std::string& title) {
     glXMakeCurrent(ourDisplay, mNativeHandle, ourContext);
 
     gl::init();
+
+    onWindowResize(width, height);
 /*
     if (!glewExperimental) {
         ALogger::info((const char*) glGetString(GL_VERSION));
@@ -180,7 +185,6 @@ void XWindow::loop() {
                 if (ev.xclient.message_type == gAtoms.wmProtocols &&
                     ev.xclient.data.l[0] == gAtoms.wmDeleteWindow) {
                     // close button clicked
-                    onCloseButtonClicked();
                     return;
                 }
                 break;
@@ -189,9 +193,21 @@ void XWindow::loop() {
                 onMousePressed(ev.xbutton.button, ev.xbutton.x, ev.xbutton.y);
                 break;
             }
+            case ButtonRelease: {
+                onMouseReleased(ev.xbutton.button, ev.xbutton.x, ev.xbutton.y);
+                break;
+            }
+            case Expose: {
+                onWindowResize(ev.xexpose.width, ev.xexpose.height);
+                break;
+            }
 
         }
         onRedraw();
         glXSwapBuffers(ourDisplay, mNativeHandle);
     }
+}
+
+void XWindow::onWindowResize(int width, int height) {
+    glViewport(0, 0, width, height);
 }

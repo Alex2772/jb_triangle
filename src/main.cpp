@@ -8,7 +8,14 @@
 class MyWindow: public XWindow {
 private:
     Program mProgram;
+    ivec2 mWindowSize;
     std::unique_ptr<Vbo> mTriangle;
+    std::vector<vec2> mVertices =
+            {
+                    {0,  1},
+                    {-100, -100},
+                    {100,  -100},
+            };
 
 public:
     MyWindow() : XWindow("JetBrains Internship 2021, author: Alex2772"),
@@ -27,8 +34,6 @@ protected:
         glClearColor(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glViewport(0, 0, 800, 600);
-
         glDisable(GL_CULL_FACE);
 
         if (mTriangle) {
@@ -40,15 +45,19 @@ protected:
 
     }
 
+    void onWindowResize(int width, int height) override {
+        XWindow::onWindowResize(width, height);
+        mWindowSize = {width, height};
+    }
+
     void onMousePressed(unsigned int button, int x, int y) override {
         XWindow::onMousePressed(button, x, y);
 
-        mTriangle = std::make_unique<Vbo>(0);
-        mTriangle->setData({
-                                   {0, 1},
-                                   {-1, -1},
-                                   {1, -1},
-                           });
+        if (!mTriangle) {
+            mTriangle = std::make_unique<Vbo>(0);
+            mVertices[0] = vec2{float(x), float(y)};
+            mTriangle->setData(mVertices);
+        }
     }
 };
 

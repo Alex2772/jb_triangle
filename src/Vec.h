@@ -18,6 +18,10 @@ using vec2 = tvec2<float>;
 using vec3 = tvec3<float>;
 using vec4 = tvec4<float>;
 
+using ivec2 = tvec2<int>;
+using ivec3 = tvec3<int>;
+using ivec4 = tvec4<int>;
+
 /**
  * @brief Compose color from hex integer
  * @param color Color represented in HEX
