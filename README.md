@@ -1,4 +1,4 @@
-# JetBrains Internship 2021 Modern Window-management library for JVM. Author: Alex2772
+# JetBrains Internship 2021 Modern Window-management library for JVM. Author: Alexey Titov aka Alex2772
 Linux
 - C++
 - Xlib
