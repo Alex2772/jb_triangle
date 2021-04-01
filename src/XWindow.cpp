@@ -172,10 +172,10 @@ public:
     }
 };
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
 
-XWindow::XWindow(const std::string& title) {
+XWindow::XWindow(const std::string& title, const ivec2& size):
+    mWindowSize(size)
+{
     if (!(mDisplayConnection = ourDisplayConnection.lock())) {
         ourDisplayConnection = mDisplayConnection = std::make_shared<XDisplayConnection>();
     }
@@ -183,7 +183,7 @@ XWindow::XWindow(const std::string& title) {
     mNativeHandle = XCreateWindow(mDisplayConnection->getDisplay(),
                                   mDisplayConnection->getDefaultScreen()->root,
                                   0, 0,
-                                  WINDOW_WIDTH, WINDOW_HEIGHT,
+                                  size.x, size.y,
                                   0,
                                   mDisplayConnection->getVisualInfo()->depth,
                                   InputOutput,
@@ -226,7 +226,7 @@ XWindow::~XWindow() {
 
 void XWindow::loop() {
     {
-        onWindowResize(WINDOW_WIDTH, WINDOW_HEIGHT);
+        onWindowResize(mWindowSize);
     }
     XEvent ev;
     for (;;) {
@@ -241,15 +241,15 @@ void XWindow::loop() {
                 break;
             }
             case ButtonPress: {
-                onMousePressed(ev.xbutton.button, ev.xbutton.x, ev.xbutton.y);
+                onMousePressed(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
                 break;
             }
             case ButtonRelease: {
-                onMouseReleased(ev.xbutton.button, ev.xbutton.x, ev.xbutton.y);
+                onMouseReleased(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
                 break;
             }
             case Expose: {
-                onWindowResize(ev.xexpose.width, ev.xexpose.height);
+                onWindowResize({ev.xexpose.width, ev.xexpose.height});
                 break;
             }
 
@@ -259,6 +259,6 @@ void XWindow::loop() {
     }
 }
 
-void XWindow::onWindowResize(int width, int height) {
-    glViewport(0, 0, width, height);
+void XWindow::onWindowResize(const ivec2& size) {
+    glViewport(0, 0, size.x, size.y);
 }

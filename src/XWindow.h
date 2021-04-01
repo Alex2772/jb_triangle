@@ -15,15 +15,17 @@ private:
     static std::weak_ptr<XDisplayConnection> ourDisplayConnection;
     std::shared_ptr<XDisplayConnection> mDisplayConnection;
 
+    ivec2 mWindowSize;
+
 protected:
-    virtual void onMousePressed(unsigned button, int x, int y) {}
-    virtual void onMouseReleased(unsigned button, int x, int y) {}
-    virtual void onMouseMouse(int x, int y) {}
-    virtual void onWindowResize(int width, int height);
+    virtual void onMousePressed(unsigned int button, const ivec2& pos) {}
+    virtual void onMouseReleased(unsigned button, const ivec2& pos) {}
+    virtual void onMouseMove(const ivec2& pos) {}
+    virtual void onWindowResize(const ivec2& size);
 
     virtual void onRedraw() {};
 public:
-    explicit XWindow(const std::string& title);
+    explicit XWindow(const std::string& title, const ivec2& size);
 
     ~XWindow();
 
@@ -32,5 +34,8 @@ public:
      */
     void loop();
 
+    const ivec2& getWindowSize() const {
+        return mWindowSize;
+    }
 };
 

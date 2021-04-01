@@ -4,23 +4,39 @@
 template<typename T>
 struct tvec2 {
     T x, y;
+
+    tvec2() = default;
+
+    template<typename V>
+    constexpr tvec2(V scalar): x(scalar), y(scalar) {}
+
+    template<typename V>
+    constexpr tvec2(V x, V y): x(x), y(y) {}
+
+    template<typename V>
+    constexpr tvec2(const tvec2<V>& other): x(other.x), y(other.y) {}
+
 };
 template<typename T>
 struct tvec3 {
     T x, y, z;
-};
-template<typename T>
-struct tvec4 {
-    T x, y, z, w;
-};
 
+    tvec3() = default;
+
+    template<typename V>
+    constexpr tvec3(V scalar): x(scalar), y(scalar), z(scalar) {}
+
+    template<typename V>
+    constexpr tvec3(V x, V y, V z): x(x), y(y), z(z) {}
+
+    template<typename V>
+    constexpr tvec3(const tvec3<V>& other): x(other.x), y(other.y), z(other.z) {}
+};
 using vec2 = tvec2<float>;
 using vec3 = tvec3<float>;
-using vec4 = tvec4<float>;
 
 using ivec2 = tvec2<int>;
 using ivec3 = tvec3<int>;
-using ivec4 = tvec4<int>;
 
 /**
  * @brief Compose color from hex integer

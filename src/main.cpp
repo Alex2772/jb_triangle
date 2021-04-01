@@ -8,24 +8,27 @@
 #include "Program.h"
 
 
+const ivec2 WINDOW_SIZE = { 800, 600 };
+
 class MyWindow: public XWindow {
 private:
     Program mProgram;
     std::unique_ptr<Vbo> mTriangle;
     std::vector<vec2> mVertices;
+    bool mDragging = false;
+    ivec2 mDragOffset;
 
 public:
-    MyWindow() : XWindow("JetBrains Internship 2021, author: Alex2772"),
+    MyWindow() : XWindow("JetBrains Internship 2021, author: Alex2772", WINDOW_SIZE),
         mProgram("attribute vec2 pos;"
                  "uniform vec2 windowSize;"
                  "void main(void) {gl_Position = vec4(pos / windowSize * vec2(2, -2) + vec2(-1, 1), 0, 1);}",
                  "void main(void) {gl_FragColor = vec4(1, 1, 1, 1);}", {"pos"})
     {
-        std::default_random_engine e;
-        e.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+        std::default_random_engine e(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-        std::uniform_real_distribution<float> xDistr(0, 800);
-        std::uniform_real_distribution<float> yDistr(0, 600);
+        std::uniform_int_distribution<int> xDistr(0, 800);
+        std::uniform_int_distribution<int> yDistr(0, 600);
         mVertices = {
             {0,  0},
             {xDistr(e), yDistr(e)},
@@ -52,18 +55,33 @@ protected:
 
     }
 
-    void onWindowResize(int width, int height) override {
-        XWindow::onWindowResize(width, height);
-        mProgram.set("windowSize", vec2{float(width), float(height)});
+    void onWindowResize(const ivec2& size) override {
+        XWindow::onWindowResize(size);
+        mProgram.set("windowSize", size);
     }
 
-    void onMousePressed(unsigned int button, int x, int y) override {
-        XWindow::onMousePressed(button, x, y);
+    void onMousePressed(unsigned int button, const ivec2& pos) override {
+        XWindow::onMousePressed(button, pos);
 
         if (!mTriangle) {
             mTriangle = std::make_unique<Vbo>(0);
-            mVertices[0] = vec2{float(x), float(y)};
+            mVertices[0] = pos;
             mTriangle->setData(mVertices);
+        } else {
+            mDragging = true;
+        }
+    }
+
+    void onMouseReleased(unsigned int button, const ivec2& pos) override {
+        XWindow::onMouseReleased(button, pos);
+        mDragging = false;
+    }
+
+    void onMouseMove(const ivec2& pos) override {
+        XWindow::onMouseMove(pos);
+
+        if (mDragging) {
+
         }
     }
 };
