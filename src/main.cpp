@@ -62,6 +62,8 @@ protected:
 
     void onMousePressed(unsigned int button, const ivec2& pos) override {
         XWindow::onMousePressed(button, pos);
+        if (button != 1)
+            return;
 
         if (!mTriangle) {
             mTriangle = std::make_unique<Vbo>(0);
@@ -75,6 +77,8 @@ protected:
 
     void onMouseReleased(unsigned int button, const ivec2& pos) override {
         XWindow::onMouseReleased(button, pos);
+        if (button != 1)
+            return;
         mDragging = false;
     }
 
