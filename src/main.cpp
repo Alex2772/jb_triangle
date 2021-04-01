@@ -27,8 +27,8 @@ public:
     {
         std::default_random_engine e(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-        std::uniform_int_distribution<int> xDistr(0, 800);
-        std::uniform_int_distribution<int> yDistr(0, 600);
+        std::uniform_int_distribution<int> xDistr(0, WINDOW_SIZE.x);
+        std::uniform_int_distribution<int> yDistr(0, WINDOW_SIZE.y);
         mVertices = {
             {0,  0},
             {xDistr(e), yDistr(e)},
@@ -69,6 +69,7 @@ protected:
             mTriangle->setData(mVertices);
         } else {
             mDragging = true;
+            mDragOffset = pos;
         }
     }
 
@@ -81,7 +82,12 @@ protected:
         XWindow::onMouseMove(pos);
 
         if (mDragging) {
-
+            auto delta = pos - mDragOffset;
+            mDragOffset = pos;
+            for (auto& vertex : mVertices) {
+                vertex += delta;
+            }
+            mTriangle->setData(mVertices);
         }
     }
 };

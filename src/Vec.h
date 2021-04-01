@@ -16,6 +16,64 @@ struct tvec2 {
     template<typename V>
     constexpr tvec2(const tvec2<V>& other): x(other.x), y(other.y) {}
 
+
+    template<typename V>
+    tvec2<T>& operator += (const tvec2<V>& v) {
+        x += v.x;
+        y += v.y;
+        return *this;
+    }
+
+    template<typename V>
+    tvec2<T>& operator -= (const tvec2<V>& v) {
+        x -= v.x;
+        y -= v.y;
+        return *this;
+    }
+
+    template<typename V>
+    tvec2<T>& operator *= (const tvec2<V>& v) {
+        x *= v.x;
+        y *= v.y;
+        return *this;
+    }
+
+    template<typename V>
+    tvec2<T>& operator /= (const tvec2<V>& v) {
+        x /= v.x;
+        y /= v.y;
+        return *this;
+    }
+
+
+    template<typename V>
+    tvec2<T> operator + (const tvec2<V>& v) const {
+        auto copy = *this;
+        copy += v;
+        return copy;
+    }
+
+    template<typename V>
+    tvec2<T> operator - (const tvec2<V>& v) const {
+        auto copy = *this;
+        copy -= v;
+        return copy;
+    }
+
+    template<typename V>
+    tvec2<T> operator * (const tvec2<V>& v) const {
+        auto copy = *this;
+        copy *= v;
+        return copy;
+    }
+
+    template<typename V>
+    tvec2<T> operator / (const tvec2<V>& v) const {
+        auto copy = *this;
+        copy /= v;
+        return copy;
+    }
+
 };
 template<typename T>
 struct tvec3 {

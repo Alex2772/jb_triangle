@@ -230,30 +230,38 @@ void XWindow::loop() {
     }
     XEvent ev;
     for (;;) {
-        XNextEvent(mDisplayConnection->getDisplay(), &ev);
-        switch (ev.type) {
-            case ClientMessage: {
-                if (ev.xclient.message_type == gAtoms.wmProtocols &&
-                    ev.xclient.data.l[0] == gAtoms.wmDeleteWindow) {
-                    // close button clicked
-                    return;
+        for (bool f = true; f || XPending(mDisplayConnection->getDisplay()); f = false) {
+            XNextEvent(mDisplayConnection->getDisplay(), &ev);
+            switch (ev.type) {
+                case ClientMessage: {
+                    if (ev.xclient.message_type == gAtoms.wmProtocols &&
+                        ev.xclient.data.l[0] == gAtoms.wmDeleteWindow) {
+                        // close button clicked
+                        return;
+                    }
+                    break;
                 }
-                break;
-            }
-            case ButtonPress: {
-                onMousePressed(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
-                break;
-            }
-            case ButtonRelease: {
-                onMouseReleased(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
-                break;
-            }
-            case Expose: {
-                onWindowResize({ev.xexpose.width, ev.xexpose.height});
-                break;
-            }
+                case ButtonPress: {
+                    onMousePressed(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
+                    break;
+                }
+                case ButtonRelease: {
+                    onMouseReleased(ev.xbutton.button, {ev.xbutton.x, ev.xbutton.y});
+                    break;
+                }
+                case Expose: {
+                    onWindowResize({ev.xexpose.width, ev.xexpose.height});
+                    break;
+                }
+                case MotionNotify: {
+                    onMouseMove({ev.xmotion.x, ev.xmotion.y});
+                    break;
+                }
 
+
+            }
         }
+
         onRedraw();
         glXSwapBuffers(mDisplayConnection->getDisplay(), mNativeHandle);
     }
