@@ -1,29 +1,36 @@
 #include <iostream>
 #include <memory>
+#include <random>
+#include <chrono>
 #include "XWindow.h"
 #include "Vbo.h"
 #include "Vec.h"
 #include "Program.h"
 
+
 class MyWindow: public XWindow {
 private:
     Program mProgram;
-    ivec2 mWindowSize;
     std::unique_ptr<Vbo> mTriangle;
-    std::vector<vec2> mVertices =
-            {
-                    {0,  1},
-                    {-100, -100},
-                    {100,  -100},
-            };
+    std::vector<vec2> mVertices;
 
 public:
     MyWindow() : XWindow("JetBrains Internship 2021, author: Alex2772"),
-        mProgram("attribute vec3 pos;"
-                 "void main(void) {gl_Position = vec4(pos, 1);}",
+        mProgram("attribute vec2 pos;"
+                 "uniform vec2 windowSize;"
+                 "void main(void) {gl_Position = vec4(pos / windowSize * vec2(2, -2) + vec2(-1, 1), 0, 1);}",
                  "void main(void) {gl_FragColor = vec4(1, 1, 1, 1);}", {"pos"})
     {
+        std::default_random_engine e;
+        e.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
+        std::uniform_real_distribution<float> xDistr(0, 800);
+        std::uniform_real_distribution<float> yDistr(0, 600);
+        mVertices = {
+            {0,  0},
+            {xDistr(e), yDistr(e)},
+            {xDistr(e), yDistr(e)},
+        };
     }
 
 protected:
@@ -47,7 +54,7 @@ protected:
 
     void onWindowResize(int width, int height) override {
         XWindow::onWindowResize(width, height);
-        mWindowSize = {width, height};
+        mProgram.set("windowSize", vec2{float(width), float(height)});
     }
 
     void onMousePressed(unsigned int button, int x, int y) override {

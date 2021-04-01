@@ -34,6 +34,11 @@ void (*gl::getShaderiv)(GLuint shader, gl::ShaderivPName pname, GLint *params) =
 void (*gl::getShaderInfoLog)(GLuint shader, GLsizei maxLength, GLsizei* length, GLchar* infoLog) = nullptr;
 void (*gl::deleteShader)(GLuint shader) = nullptr;
 
+// shader uniform
+GLint (*gl::getUniformLocation)(GLuint program, const GLchar* name) = nullptr;
+void (*gl::uniform1f)(GLint location, GLfloat v0) = nullptr;
+void (*gl::uniform2f)(GLint location, GLfloat v0, GLfloat v1) = nullptr;
+
 template<typename T>
 void getProcAddress(T& dst, const char* procName) {
     dst = reinterpret_cast<T>(glXGetProcAddress(reinterpret_cast<const GLubyte*>(procName)));
@@ -70,4 +75,9 @@ void gl::init() {
     getProcAddress(getShaderiv, "glGetShaderiv");
     getProcAddress(getShaderInfoLog, "glGetShaderInfoLog");
     getProcAddress(deleteShader, "glDeleteShader");
+
+    // shader uniform
+    getProcAddress(getUniformLocation, "glGetUniformLocation");
+    getProcAddress(uniform1f, "glUniform1f");
+    getProcAddress(uniform2f, "glUniform2f");
 }

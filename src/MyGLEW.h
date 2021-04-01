@@ -85,6 +85,11 @@ namespace gl {
     extern void (*getShaderInfoLog)(GLuint shader, GLsizei maxLength, GLsizei* length, GLchar* infoLog);
     extern void (*deleteShader)(GLuint shader);
 
+    // shader uniform
+    extern GLint (*getUniformLocation)(GLuint program, const GLchar* name);
+    extern void (*uniform1f)(GLint location, GLfloat v0);
+    extern void (*uniform2f)(GLint location, GLfloat v0, GLfloat v1);
+
 
     void init();
 };

@@ -67,3 +67,8 @@ void Program::use() {
         gl::useProgram(mProgram);
     }
 }
+
+void Program::set(const char* uniformName, const vec2& value) {
+    use();
+    gl::uniform2f(gl::getUniformLocation(mProgram, uniformName), value.x, value.y);
+}
