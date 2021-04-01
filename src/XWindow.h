@@ -4,15 +4,16 @@
 #include <X11/X.h>
 #include <string>
 #include <GL/glx.h>
+#include <memory>
 #include "Vec.h"
+
+class XDisplayConnection;
 
 class XWindow {
 private:
-    static GLXContext ourContext;
-    static Display* ourDisplay;
-    static Screen* ourScreen;
-    static int ourScreenId;
     Window mNativeHandle;
+    static std::weak_ptr<XDisplayConnection> ourDisplayConnection;
+    std::shared_ptr<XDisplayConnection> mDisplayConnection;
 
 protected:
     virtual void onMousePressed(unsigned button, int x, int y) {}
@@ -31,8 +32,5 @@ public:
      */
     void loop();
 
-    static Display* getDisplay() {
-        return ourDisplay;
-    }
 };
 

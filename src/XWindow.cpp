@@ -7,53 +7,46 @@
 #include "XWindow.h"
 #include "MyGLEW.h"
 
-GLXContext XWindow::ourContext = nullptr;
-Display* XWindow::ourDisplay = nullptr;
-Screen* XWindow::ourScreen = nullptr;
-int XWindow::ourScreenId = 0;
+std::weak_ptr<XDisplayConnection> XWindow::ourDisplayConnection;
 
 struct {
     Atom wmProtocols;
     Atom wmDeleteWindow;
 
-    void init() {
-        wmProtocols = XInternAtom(XWindow::getDisplay(), "WM_PROTOCOLS", False);
-        wmDeleteWindow = XInternAtom(XWindow::getDisplay(), "WM_DELETE_WINDOW", False);
+    void init(Display* display) {
+        wmProtocols = XInternAtom(display, "WM_PROTOCOLS", False);
+        wmDeleteWindow = XInternAtom(display, "WM_DELETE_WINDOW", False);
     }
 
 } gAtoms;
 
-XWindow::XWindow(const std::string& title) {
+struct XDisplayConnection {
+private:
 
+    GLXContext mContext;
+    Display* mDisplay;
+    Screen* mDefaultScreen;
+    int mDefaultScreenId;
+    XVisualInfo* mVisualInfo;
+    XSetWindowAttributes mSetWindowAttributes;
 
-    struct DisplayInstance {
-    private:
-        static int xerrorhandler(Display* dsp, XErrorEvent* error) {
-            if (ourDisplay == dsp) {
-                char errorstring[0x100];
-                XGetErrorText(dsp, error->error_code, errorstring, sizeof(errorstring));
-                printf("X Error: %s\n", errorstring);
-            }
-            return 0;
+    static int xerrorhandler(Display* dsp, XErrorEvent* error) {
+        //if (mDisplay == dsp)
+        {
+            char errorstring[0x100];
+            XGetErrorText(dsp, error->error_code, errorstring, sizeof(errorstring));
+            printf("X Error: %s\n", errorstring);
         }
-    public:
-        DisplayInstance() {
-            ourDisplay = XOpenDisplay(nullptr);
-            XSetErrorHandler(xerrorhandler);
-            ourScreen = DefaultScreenOfDisplay(ourDisplay);
-            ourScreenId = DefaultScreen(ourDisplay);
-            gAtoms.init();
-        }
+        return 0;
+    }
+public:
+    XDisplayConnection() {
+        mDisplay = XOpenDisplay(nullptr);
+        XSetErrorHandler(xerrorhandler);
+        mDefaultScreen = DefaultScreenOfDisplay(mDisplay);
+        mDefaultScreenId = DefaultScreen(mDisplay);
+        gAtoms.init(mDisplay);
 
-        ~DisplayInstance() {
-        }
-    };
-    static DisplayInstance display;
-    static XVisualInfo* vi;
-    static XSetWindowAttributes swa;
-
-
-    if (ourContext == nullptr) {
         GLint att[] = {GLX_X_RENDERABLE, True, // 1
                        GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, // 3
                        GLX_RENDER_TYPE, GLX_RGBA_BIT, // 5
@@ -71,30 +64,44 @@ XWindow::XWindow(const std::string& title) {
                        None};
 
         constexpr size_t attArrayLength = sizeof(att) / sizeof(GLint);
-        
+
         int fbcount;
-        GLXFBConfig* fbc = glXChooseFBConfig(ourDisplay, DefaultScreen(ourDisplay), att, &fbcount);
+        GLXFBConfig* fbc = glXChooseFBConfig(mDisplay,
+                                             mDefaultScreenId,
+                                             att,
+                                             &fbcount);
 
         if (fbc == nullptr || fbcount <= 0) {
             // try to reduce system requirements
             size_t indexToReduce = attArrayLength - 2;
             do {
-                std::cout << "Reduced OpenGL requirements: pass " << (attArrayLength - indexToReduce) / 2 - 1 << std::endl;
+                std::cout << "Reduced OpenGL requirements: pass "
+                          << (attArrayLength - indexToReduce) / 2 - 1
+                          << std::endl;
                 att[indexToReduce] = 0;
                 indexToReduce -= 2;
-                fbc = glXChooseFBConfig(ourDisplay, DefaultScreen(ourDisplay), att, &fbcount);
+                fbc = glXChooseFBConfig(mDisplay,
+                                        mDefaultScreenId,
+                                        att,
+                                        &fbcount);
             } while ((fbc == nullptr || fbcount <= 0) && indexToReduce > 13); // up to GLX_BLUE_SIZE
 
             if (fbc == nullptr || fbcount <= 0) {
                 // try to disable rgba.
                 att[5] = 0;
                 std::cout << "Disabled RGBA" << std::endl;
-                fbc = glXChooseFBConfig(ourDisplay, DefaultScreen(ourDisplay), att, &fbcount);
+                fbc = glXChooseFBConfig(mDisplay,
+                                        mDefaultScreenId,
+                                        att,
+                                        &fbcount);
 
                 if (fbc == nullptr || fbcount <= 0) {
                     // use default attribs
                     std::cout << "Using default attribs" << std::endl;
-                    glXChooseFBConfig(ourDisplay, DefaultScreen(ourDisplay), nullptr, &fbcount);
+                    glXChooseFBConfig(mDisplay,
+                                      mDefaultScreenId,
+                                      nullptr,
+                                      &fbcount);
                     if (fbc == nullptr || fbcount <= 0) {
                         // giving up.
                         std::cout << "System hardware is not supported. Giving up." << std::endl;
@@ -109,18 +116,18 @@ XWindow::XWindow(const std::string& title) {
 
         int i;
         for (i = 0; i < fbcount; ++i) {
-            vi = glXGetVisualFromFBConfig(ourDisplay, fbc[i]);
-            if (vi) {
+            mVisualInfo = glXGetVisualFromFBConfig(mDisplay, fbc[i]);
+            if (mVisualInfo) {
                 int samp_buf, samples;
-                glXGetFBConfigAttrib(ourDisplay, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
-                glXGetFBConfigAttrib(ourDisplay, fbc[i], GLX_SAMPLES, &samples);
+                glXGetFBConfigAttrib(mDisplay, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
+                glXGetFBConfigAttrib(mDisplay, fbc[i], GLX_SAMPLES, &samples);
 
                 if (bestConfigId < 0 || samp_buf && samples > bestNumSamples)
                     bestConfigId = i, bestNumSamples = samples;
                 if (worstConfigId < 0 || !samp_buf || samples < worstNumSamples)
                     worstConfigId = i, worstNumSamples = samples;
             }
-            XFree(vi);
+            XFree(mVisualInfo);
         }
 
         GLXFBConfig bestFbc = fbc[bestConfigId];
@@ -128,36 +135,77 @@ XWindow::XWindow(const std::string& title) {
         XFree(fbc);
 
         // Get a visual
-        vi = glXGetVisualFromFBConfig(ourDisplay, bestFbc);
-        auto cmap = XCreateColormap(ourDisplay, ourScreen->root, vi->visual, AllocNone);
-        swa.colormap = cmap;
-        swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask
-                         | PointerMotionMask | StructureNotifyMask | PropertyChangeMask;
-        ourContext = glXCreateContext(ourDisplay, vi, nullptr, true);
+        mVisualInfo = glXGetVisualFromFBConfig(mDisplay, bestFbc);
+        auto cmap = XCreateColormap(mDisplay, mDefaultScreen->root, mVisualInfo->visual, AllocNone);
+        mSetWindowAttributes.colormap = cmap;
+        mSetWindowAttributes.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask
+                                          | PointerMotionMask | StructureNotifyMask | PropertyChangeMask;
+        mContext = glXCreateContext(mDisplay, mVisualInfo, nullptr, true);
     }
 
-    const unsigned width = 800;
-    const unsigned height = 600;
+    ~XDisplayConnection() {
+        XCloseDisplay(mDisplay);
+    }
 
-    mNativeHandle = XCreateWindow(ourDisplay, ourScreen->root, 0, 0, width, height, 0, vi->depth, InputOutput, vi->visual,
-                            CWColormap | CWEventMask | CWCursor, &swa);
+    GLXContext getContext() const {
+        return mContext;
+    }
+
+    Display* getDisplay() const {
+        return mDisplay;
+    }
+
+    Screen* getDefaultScreen() const {
+        return mDefaultScreen;
+    }
+
+    int getDefaultScreenId() const {
+        return mDefaultScreenId;
+    }
+
+    XVisualInfo* getVisualInfo() const {
+        return mVisualInfo;
+    }
+
+    XSetWindowAttributes& getSetWindowAttributes() {
+        return mSetWindowAttributes;
+    }
+};
+
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
+
+XWindow::XWindow(const std::string& title) {
+    if (!(mDisplayConnection = ourDisplayConnection.lock())) {
+        ourDisplayConnection = mDisplayConnection = std::make_shared<XDisplayConnection>();
+    }
+
+    mNativeHandle = XCreateWindow(mDisplayConnection->getDisplay(),
+                                  mDisplayConnection->getDefaultScreen()->root,
+                                  0, 0,
+                                  WINDOW_WIDTH, WINDOW_HEIGHT,
+                                  0,
+                                  mDisplayConnection->getVisualInfo()->depth,
+                                  InputOutput,
+                                  mDisplayConnection->getVisualInfo()->visual,
+                                  CWColormap | CWEventMask | CWCursor,
+                                  &mDisplayConnection->getSetWindowAttributes());
 
 
-    XMapWindow(ourDisplay, mNativeHandle);
+    XMapWindow(mDisplayConnection->getDisplay(), mNativeHandle);
 
-    XStoreName(ourDisplay, mNativeHandle, title.c_str());
-    XChangeProperty(ourDisplay, mNativeHandle, XInternAtom(ourDisplay, "_NET_WM_NAME", false),
-                    XInternAtom(ourDisplay, "UTF8_STRING", false), 8, PropModeReplace,
+    XStoreName(mDisplayConnection->getDisplay(), mNativeHandle, title.c_str());
+    XChangeProperty(mDisplayConnection->getDisplay(), mNativeHandle, XInternAtom(mDisplayConnection->getDisplay(), "_NET_WM_NAME", false),
+                    XInternAtom(mDisplayConnection->getDisplay(), "UTF8_STRING", false), 8, PropModeReplace,
                     reinterpret_cast<const unsigned char*>(title.c_str()), title.length());
 
-    XSetWMProtocols(ourDisplay, mNativeHandle, &gAtoms.wmDeleteWindow, 1);
+    XSetWMProtocols(mDisplayConnection->getDisplay(), mNativeHandle, &gAtoms.wmDeleteWindow, 1);
 
 
-    glXMakeCurrent(ourDisplay, mNativeHandle, ourContext);
+    glXMakeCurrent(mDisplayConnection->getDisplay(), mNativeHandle, mDisplayConnection->getContext());
 
     gl::init();
 
-    onWindowResize(width, height);
 /*
     if (!glewExperimental) {
         ALogger::info((const char*) glGetString(GL_VERSION));
@@ -173,13 +221,16 @@ XWindow::XWindow(const std::string& title) {
 }
 
 XWindow::~XWindow() {
-    XDestroyWindow(ourDisplay, mNativeHandle);
+    XDestroyWindow(mDisplayConnection->getDisplay(), mNativeHandle);
 }
 
 void XWindow::loop() {
+    {
+        onWindowResize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
     XEvent ev;
     for (;;) {
-        XNextEvent(ourDisplay, &ev);
+        XNextEvent(mDisplayConnection->getDisplay(), &ev);
         switch (ev.type) {
             case ClientMessage: {
                 if (ev.xclient.message_type == gAtoms.wmProtocols &&
@@ -204,7 +255,7 @@ void XWindow::loop() {
 
         }
         onRedraw();
-        glXSwapBuffers(ourDisplay, mNativeHandle);
+        glXSwapBuffers(mDisplayConnection->getDisplay(), mNativeHandle);
     }
 }
 
